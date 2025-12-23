@@ -1,96 +1,81 @@
-bluetooth.onBluetoothConnected(function () {
-    basic.showLeds(`
-        . . . . .
-        . . . . .
-        # # . # #
-        . . . . .
-        . . . . .
-        `)
-})
-bluetooth.onBluetoothDisconnected(function () {
-    basic.showLeds(`
-        . . . . .
-        . # . # .
-        . . # . .
-        . # # # .
-        . # . # .
-        `)
-})
+function clamp (v: number, lo: number, hi: number) {
+    if (v < lo) {
+        return lo
+    }
+    if (v > hi) {
+        return hi
+    }
+    return v
+}
+// 把 1500 附近小抖動吃掉
+function applyDeadband (pwm: number, center: number, band: number) {
+    if (Math.abs(pwm - center) <= band) {
+        return center
+    }
+    return pwm
+}
+let s = 0
+let t = 0
 let BLEInput = ""
-DFRobotMaqueenPlusV2.I2CInit()
-bluetooth.startUartService()
-bluetooth.setTransmitPower(7)
-basic.showLeds(`
-    . . . . .
-    . . . . #
-    . . . # .
-    # . # . .
-    . # . . .
-    `)
+let leftPwm = 0
+let rightPwm = 0
+function driveMotorFromPwm(motor: MyEnumMotor, pwm: number) {
+    pwm = clamp(pwm, 1000, 2000)
+
+    if (pwm >= 1500) {
+        let spd = Math.map(pwm, 1500, 2000, 0, 100)
+        DFRobotMaqueenPlusV2.controlMotor(motor, MyEnumDir.eForward, spd)
+    } else {
+        let spd2 = Math.map(pwm, 1500, 1000, 0, 100)
+        DFRobotMaqueenPlusV2.controlMotor(motor, MyEnumDir.eBackward, spd2)
+    }
+}
 let P0String = "1500"
 let P1String = "1500"
 let P2String = "1500"
 let P3String = "1500"
-let TankP0 = 1500
-let TankP1 = 1500
-let Channel1Value = parseFloat(P0String)
-let Channel2Value = parseFloat(P1String)
-let Channel3Value = parseFloat(P2String)
-let Channel4Value = parseFloat(P3String)
-DFRobotMaqueenPlusV2.controlMotorStop(MyEnumMotor.eAllMotor)
-DFRobotMaqueenPlusV2.controlLED(MyEnumLed.eAllLed, MyEnumSwitch.eOpen)
+// throttle
+let ch1 = 1500
+// steering
+let ch2 = 1500
+let ch3 = 1500
+let ch4 = 1500
 basic.forever(function () {
     BLEInput = bluetooth.uartReadUntil(serial.delimiters(Delimiters.Hash))
-    if (BLEInput.length == 19) {
-        if (BLEInput.substr(0, 3) == "SRT") {
-            P0String = BLEInput.substr(3, 4)
-            P1String = BLEInput.substr(7, 4)
-            P2String = BLEInput.substr(11, 4)
-            Channel1Value = parseFloat(P0String)
-            Channel2Value = parseFloat(P1String)
-            Channel3Value = parseFloat(P2String)
-            TankP0 = 1500
-            TankP1 = 1500
-            if (Channel2Value >= 1500) {
-                TankP1 = TankP1 + (Channel2Value - 1500)
-                TankP0 = TankP0 - (Channel2Value - 1500)
-            } else {
-                TankP1 = TankP1 - (1500 - Channel2Value)
-                TankP0 = TankP0 + (1500 - Channel2Value)
-            }
-            if (Channel1Value >= 1500) {
-                TankP1 = TankP1 + (Channel1Value - 1500)
-                TankP0 = TankP0 + (Channel1Value - 1500)
-            } else {
-                TankP1 = TankP1 - (1500 - Channel1Value)
-                TankP0 = TankP0 - (1500 - Channel1Value)
-            }
-            if (TankP0 < 1000) {
-                TankP0 = 1000
-            }
-            if (TankP0 > 2000) {
-                TankP0 = 2000
-            }
-            if (TankP1 > 2000) {
-                TankP1 = 2000
-            }
-            if (TankP1 < 1000) {
-                TankP1 = 1000
-            }
-            if (TankP0 < 1500) {
-                TankP0 = Math.map(TankP0, 1500, 2000, 0, 100)
-                DFRobotMaqueenPlusV2.controlMotor(MyEnumMotor.eLeftMotor, MyEnumDir.eForward, TankP0)
-            } else {
-                TankP0 = Math.map(TankP0, 1500, 1000, 0, 100)
-                DFRobotMaqueenPlusV2.controlMotor(MyEnumMotor.eLeftMotor, MyEnumDir.eBackward, TankP0)
-            }
-            if (TankP1 < 1500) {
-                TankP1 = Math.map(TankP1, 1500, 2000, 0, 100)
-                DFRobotMaqueenPlusV2.controlMotor(MyEnumMotor.eRightMotor, MyEnumDir.eBackward, TankP1)
-            } else {
-                TankP1 = Math.map(TankP1, 1500, 1000, 0, 100)
-                DFRobotMaqueenPlusV2.controlMotor(MyEnumMotor.eRightMotor, MyEnumDir.eForward, TankP1)
-            }
-        }
+    // 預期格式：SRT + 4ch(每個4字元) => 3 + 16 = 19
+    if (BLEInput.length != 19) {
+        return
     }
+    if (BLEInput.substr(0, 3) != "SRT") {
+        return
+    }
+    // CH1
+    P0String = BLEInput.substr(3, 4)
+    // CH2
+    P1String = BLEInput.substr(7, 4)
+    // CH3
+    P2String = BLEInput.substr(11, 4)
+    // CH4
+    P3String = BLEInput.substr(15, 4)
+    ch1 = parseFloat(P0String)
+    ch2 = parseFloat(P1String)
+    ch3 = parseFloat(P2String)
+    ch4 = parseFloat(P3String)
+    // deadband：避免抖動（可調 10~30）
+    ch1 = applyDeadband(ch1, 1500, 10)
+    ch2 = applyDeadband(ch2, 1500, 10)
+    // ===== 坦克混控 (throttle + steering) =====
+    // throttle: ch1, steering: ch2
+    // 先換算成 -500..+500 的偏移量
+    // 前後
+    t = ch2 - 1500
+    // 左右
+    s = (ch1 - 1500) * -1
+    // 左右輪 PWM（1500 為停）
+    leftPwm = 1500 + t - s
+    rightPwm = 1500 + t + s
+    leftPwm = clamp(leftPwm, 1000, 2000)
+    rightPwm = clamp(rightPwm, 1000, 2000)
+    driveMotorFromPwm(MyEnumMotor.eLeftMotor, leftPwm)
+driveMotorFromPwm(MyEnumMotor.eRightMotor, rightPwm)
 })
