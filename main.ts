@@ -67,10 +67,18 @@ basic.forever(function () {
     // ===== 坦克混控 (throttle + steering) =====
     // throttle: ch1, steering: ch2
     // 先換算成 -500..+500 的偏移量
-    // 前後
     t = ch2 - 1500
-    // 左右
     s = (ch1 - 1500) * -1
+
+    let TURN_RATIO = 0.6         // 0.5~0.8 建議，越小越像「45度大弧線」
+    let THROTTLE_SPIN_ZONE = 60  // 油門小於這個範圍，允許原地轉向(單位=PWM)
+
+    if (Math.abs(t) > THROTTLE_SPIN_ZONE) {
+        // 有在走路時：限制轉向不超過油門的一定比例，避免內輪被抵消到停
+        let sLimit = Math.abs(t) * TURN_RATIO
+        s = clamp(s, -sLimit, sLimit)
+    }
+
     // 左右輪 PWM（1500 為停）
     leftPwm = 1500 + t - s
     rightPwm = 1500 + t + s
