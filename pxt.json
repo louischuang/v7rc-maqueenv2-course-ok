@@ -1,5 +1,6 @@
 {
     "name": "V7RC-MaqueenV2-Course-OK",
+    "version": "0.1.0",
     "description": "",
     "dependencies": {
         "core": "*",
