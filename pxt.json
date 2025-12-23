@@ -1,0 +1,42 @@
+{
+    "name": "V7RC-MaqueenV2-Course-OK",
+    "description": "",
+    "dependencies": {
+        "core": "*",
+        "microphone": "*",
+        "DFRobot_MaqueenPlus_V2.0": "github:DFRobot/pxt-DFRobot_MaqueenPlus_v20#v1.2.8",
+        "bluetooth": "*",
+        "MaqueenPlus": "github:dfrobot/pxt-dfrobot-maqueenplus#v1.5.1"
+    },
+    "files": [
+        "main.blocks",
+        "main.ts",
+        "README.md"
+    ],
+    "testFiles": [
+        "test.ts"
+    ],
+    "targetVersions": {
+        "branch": "v5.0.12",
+        "tag": "v5.0.12",
+        "commits": "https://github.com/microsoft/pxt-microbit/commits/97491d6832cccab6b5bdc05b58e4c6b5dcc18cdd",
+        "target": "8.0.18",
+        "pxt": "8.0.7",
+        "targetId": "microbit"
+    },
+    "supportedTargets": [
+        "microbit"
+    ],
+    "preferredEditor": "blocksprj",
+    "yotta": {
+        "config": {
+            "microbit-dal": {
+                "bluetooth": {
+                    "open": 1,
+                    "whitelist": 0,
+                    "security_level": null
+                }
+            }
+        }
+    }
+}
