@@ -23,10 +23,10 @@ function driveMotorFromPwm(motor: MyEnumMotor, pwm: number) {
     pwm = clamp(pwm, 1000, 2000)
 
     if (pwm >= 1500) {
-        let spd = Math.map(pwm, 1500, 2000, 0, 100)
+        let spd = Math.map(pwm, 1500, 2000, 0, 255)
         DFRobotMaqueenPlusV2.controlMotor(motor, MyEnumDir.eForward, spd)
     } else {
-        let spd2 = Math.map(pwm, 1500, 1000, 0, 100)
+        let spd2 = Math.map(pwm, 1500, 1000, 0, 255)
         DFRobotMaqueenPlusV2.controlMotor(motor, MyEnumDir.eBackward, spd2)
     }
 }
